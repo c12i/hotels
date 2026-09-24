@@ -33,6 +33,15 @@ The only review data we have is two bare strings on one record ("pool was closed
 - **How it plugs in:** the service would populate `author`/`rating`/`written_at`/`guest_count`/`room_type` on the same `Review` objects this script already emits with those fields `null`, so downstream consumers don't need a schema change when it ships.
 - **Confidence:** as with addresses, a field the service can't confidently extract should stay `null` rather than being guessed — an AI agent citing a fabricated reviewer or rating is worse than citing an anonymous one.
 
+### Star rating: sourced value vs. computed from reviews (future work)
+
+Today `stars` is taken as-is from whatever the source reports (`4`, `"3 stars"`, or `null`), with no cross-checking. That's already visibly wrong in the sample: `Hotel Mare Azzurro` (partner-feed-a) reports 4 stars and `Mare Azzuro Hotel` (scrape-booking-sites) reports 3 stars for what is the same hotel — there's no way today to tell which figure to trust, or whether either is current. Two ways to get a `stars` value, once review extraction (above) is populating per-review `rating`:
+
+1. **Sourced static rating** (what this script does now) — the official star class assigned by a hotel/classification body. This is what "stars" conventionally means, and it's the only option available before any reviews are extracted.
+2. **Computed from extracted user reviews** — aggregate (e.g. average, or recency-weighted) `review.rating` across all reviews pulled for a hotel across sources. This measures guest satisfaction, which drifts over time (renovations, management changes, a pool closed for a month) in a way a static class doesn't.
+
+These aren't really substitutes for each other — one is an official classification, the other a satisfaction signal — so the plan is to keep both once review extraction ships: `stars` stays the sourced/official value, and a separate `guest_rating` (computed) is added rather than overwriting `stars`. When the two disagree sharply, or when two sources disagree on the sourced value itself (as with the two Mare Azzurro records), that's a signal worth surfacing rather than silently picking one — the same duplicate-conflict problem noted under "Alternatives considered" below. For this prototype, `stars` stays sourced-only; review-derived rating is not computed, since it depends on the review-extraction service, which isn't built yet.
+
 ## Alternatives considered
 
 - **Duplicate detection / merging** (the two Rimini records). High value, but fuzzy matching is only reliable once records share a schema. It's a natural next step.

@@ -109,3 +109,11 @@ Updated `DECISIONS.md`:
 - Added a `Reviews` bullet to the schema list describing the new object shape and noting only `text` is populated today.
 - Added a "Review extraction (future work, not in this prototype)" subsection, mirroring the address-extraction one: a separate LLM service would extract author/rating/written_at/guest_count/room_type from the actual review pages on each source (not just the snippet we're handed), preferring a source's own structured review fields when available and falling back to LLM extraction only when they're missing; the service fills the same `Review` fields this script already emits as `null`; unconfident extractions should stay `null` rather than be guessed, for the same reason as addresses.
 - Added a 6th item to "How we'll know it works" checking the Mare Azzuro review objects have `text` set and the other five fields `null`.
+
+## Prompt 7
+
+> Add to decisions: compute star ratings based on sourced static star rating or compute star rating based on extracted user reviews
+
+### Response
+
+Documentation-only change (no code touched). Added a "Star rating: sourced value vs. computed from reviews (future work)" subsection to `DECISIONS.md`, alongside the address- and review-extraction subsections. Grounded it in the concrete conflict already in the sample: `Hotel Mare Azzurro` (partner-feed-a) reports 4 stars, `Mare Azzuro Hotel` (scrape-booking-sites) reports 3 stars, for the same hotel. Laid out the two options — (1) the sourced/official static rating, what the script does today, vs (2) a rating computed by aggregating `review.rating` across extracted reviews once the review-extraction service (Prompt 6) is populating that field — and noted they measure different things (official class vs. guest satisfaction, which drifts over time), so the plan is to keep both as separate fields (`stars` stays sourced, a new `guest_rating` would be computed) rather than one replacing the other, and to surface disagreement between them — or between sources on the sourced value itself — as a flag rather than silently picking a winner. No schema or code change in this prototype; `stars` stays sourced-only since it depends on the not-yet-built review-extraction service.
