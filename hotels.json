@@ -1,0 +1,48 @@
+[
+  {
+    "source": "partner-feed-a",
+    "hotel_name": "Hotel Mare Azzurro",
+    "city": "Rimini",
+    "country": "IT",
+    "stars": 4,
+    "description": "<b>WELCOME TO PARADISE!!!</b> Newly renovated in 2019, our beachfront gem offers luxury at unbeatable prices. Best hotel in Rimini!",
+    "amenities": "pool,wifi,parking",
+    "price_from_eur": 89
+  },
+  {
+    "source": "scrape-booking-sites",
+    "name": "Mare Azzuro Hotel",
+    "location": "Rimini, Italien",
+    "rating": "3 stars",
+    "features": ["swimming pool", "free WiFi", "pets allowed"],
+    "review_snippets": ["pool was closed for the whole of August", "great breakfast"],
+    "last_seen": "2023-11-02"
+  },
+  {
+    "source": "partner-feed-b",
+    "hotel_name": "Alpenhof Garni",
+    "city": "Innsbruck",
+    "country": "AT",
+    "description": "Familiengeführtes Hotel im Herzen der Alpen. Kein Restaurant, Frühstück inklusive.",
+    "amenities": null,
+    "coords": {"lat": 47.2692, "lng": 11.4041}
+  },
+  {
+    "source": "scrape-booking-sites",
+    "name": "Sunset Bay Resort & Spa",
+    "location": "Playa del Carmen, Mexico",
+    "features": ["spa", "3 pools", "swim-up bar", "kids club"],
+    "description": "An adults-only sanctuary of tranquility.",
+    "price_from": "180 USD"
+  },
+  {
+    "source": "partner-feed-a",
+    "hotel_name": "City Lodge Berlin",
+    "city": "Berlin",
+    "country": "DE",
+    "stars": null,
+    "description": "",
+    "amenities": "wifi",
+    "coords": {"lat": 48.1351, "lng": 11.5820}
+  }
+]
