@@ -94,3 +94,18 @@ Updated `DECISIONS.md`:
 - The schema bullet list now describes `location` as one nested object instead of separate fields, linking to schema.org's `PostalAddress` and explaining why that shape was chosen (drop-in compatibility with existing address tooling/geocoders).
 - Added a new "Address extraction (future work, not in this prototype)" subsection: addresses would come from a separate LLM service run after this normaliser, given name + city + country + description (+ coordinates when present), returning a structured `PostalAddress` or abstaining rather than guessing. Explained why an LLM rather than a reverse-geocoder API: two of five sample records lack coordinates and one has coordinates that are wrong by ~504 km, and an LLM can also mine an address out of free text (e.g. Alpenhof's German description) which a reverse-geocoder can't do. Noted the two approaches are complementary in production (geocode when coordinates are trustworthy, LLM-extract from text otherwise, cross-check when both exist), that the service would fill the same `location.address` field this script already emits as `null` so the schema doesn't change when it ships, and that it should return a confidence/abstain signal rather than present a guessed address as fact.
 - Updated the "How we'll know it works" checklist item 4 to check the new nested `location` shape and `location.address == null`.
+
+## Prompt 6
+
+> review snippets as a list of strings is not rich enough: important details such as: when the review was written, the author (if not anonymous), the star rating, the number of guests, and the type of room they reviewed is necessary. If this is not derivable from the current source. perhaps this is yet another area where another LLM service would populate reviews for a particular hotel from varous sources where data is extracted from. Provision this schema in advance, and parse current reviews using this format for now.
+
+### Response
+
+Replaced `Hotel.Reviews []string` with `Hotel.Reviews []Review` in `main.go`, where `Review` is `{text, author *string, rating *int, written_at *string, guest_count *int, room_type *string}`. Updated the `review_snippets` parsing loop to build a `Review{Text: s}` per string, leaving the other five fields `nil` (they render as JSON `null`) since none of the current sources carry that metadata.
+
+Ran `gofmt -w`, `go vet ./...` (clean), `go run .`, and a Python check confirming: only the one record that had `review_snippets` (Mare Azzuro Hotel) has any `reviews`, each review object has exactly the six expected keys, `text` is non-empty, and the other five fields are all `null`.
+
+Updated `DECISIONS.md`:
+- Added a `Reviews` bullet to the schema list describing the new object shape and noting only `text` is populated today.
+- Added a "Review extraction (future work, not in this prototype)" subsection, mirroring the address-extraction one: a separate LLM service would extract author/rating/written_at/guest_count/room_type from the actual review pages on each source (not just the snippet we're handed), preferring a source's own structured review fields when available and falling back to LLM extraction only when they're missing; the service fills the same `Review` fields this script already emits as `null`; unconfident extractions should stay `null` rather than be guessed, for the same reason as addresses.
+- Added a 6th item to "How we'll know it works" checking the Mare Azzuro review objects have `text` set and the other five fields `null`.

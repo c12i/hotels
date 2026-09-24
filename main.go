@@ -41,6 +41,19 @@ type Price struct {
 	EUR      float64 `json:"eur"`
 }
 
+// Review is provisioned for richer review data than any current source
+// gives us (just a snippet of text). The other fields are always null for
+// now; see DECISIONS.md for how an LLM extraction service would fill them
+// in from the underlying review pages.
+type Review struct {
+	Text       string  `json:"text"`
+	Author     *string `json:"author"`
+	Rating     *int    `json:"rating"`
+	WrittenAt  *string `json:"written_at"`
+	GuestCount *int    `json:"guest_count"`
+	RoomType   *string `json:"room_type"`
+}
+
 type Hotel struct {
 	Source      string   `json:"source"`
 	Name        string   `json:"name"`
@@ -49,7 +62,7 @@ type Hotel struct {
 	PriceFrom   *Price   `json:"price_from"`
 	Description string   `json:"description"`
 	Amenities   []string `json:"amenities"`
-	Reviews     []string `json:"review_snippets,omitempty"`
+	Reviews     []Review `json:"reviews,omitempty"`
 	LastSeen    string   `json:"last_seen,omitempty"`
 	Notes       []string `json:"notes,omitempty"`
 }
@@ -191,10 +204,12 @@ func normalise(r map[string]any) Hotel {
 		}
 	}
 
+	// Reviews: sources only give us free text today, so every field but
+	// Text is left null (provisioned, not derivable yet — see DECISIONS.md).
 	if rs, ok := r["review_snippets"].([]any); ok {
 		for _, x := range rs {
 			if s, ok := x.(string); ok {
-				h.Reviews = append(h.Reviews, s)
+				h.Reviews = append(h.Reviews, Review{Text: s})
 			}
 		}
 	}
