@@ -17,6 +17,24 @@ type Coords struct {
 	Lng float64 `json:"lng"`
 }
 
+// PostalAddress mirrors schema.org's PostalAddress fields. None of the
+// current sources give us a street-level address, so this is always null
+// for now; see DECISIONS.md for how it gets filled in later.
+type PostalAddress struct {
+	StreetAddress   string `json:"street_address"`
+	AddressLocality string `json:"address_locality"`
+	AddressRegion   string `json:"address_region,omitempty"`
+	PostalCode      string `json:"postal_code"`
+	AddressCountry  string `json:"address_country"`
+}
+
+type Location struct {
+	City        string         `json:"city"`
+	CountryCode string         `json:"country_code"`
+	Coordinates *Coords        `json:"coordinates"`
+	Address     *PostalAddress `json:"address"`
+}
+
 type Price struct {
 	Amount   float64 `json:"amount"`
 	Currency string  `json:"currency"`
@@ -26,9 +44,7 @@ type Price struct {
 type Hotel struct {
 	Source      string   `json:"source"`
 	Name        string   `json:"name"`
-	City        string   `json:"city"`
-	CountryCode string   `json:"country_code"`
-	Coords      *Coords  `json:"coords"`
+	Location    Location `json:"location"`
 	Stars       *int     `json:"stars"`
 	PriceFrom   *Price   `json:"price_from"`
 	Description string   `json:"description"`
@@ -84,29 +100,30 @@ func normalise(r map[string]any) Hotel {
 	h := Hotel{Source: str(r, "source"), Name: str(r, "hotel_name", "name"), Amenities: []string{}}
 
 	// Location: explicit city/country, or a "City, Country" string.
-	h.City = str(r, "city")
+	// Address is always null here; see DECISIONS.md.
+	h.Location.City = str(r, "city")
 	country := str(r, "country")
 	if loc := str(r, "location"); loc != "" {
 		parts := strings.Split(loc, ",")
-		if h.City == "" {
-			h.City = strings.TrimSpace(parts[0])
+		if h.Location.City == "" {
+			h.Location.City = strings.TrimSpace(parts[0])
 		}
 		if country == "" && len(parts) > 1 {
 			country = strings.TrimSpace(parts[len(parts)-1])
 		}
 	}
 	if code, ok := countryCodes[strings.ToLower(country)]; ok {
-		h.CountryCode = code
+		h.Location.CountryCode = code
 	} else if country != "" {
 		h.Notes = append(h.Notes, fmt.Sprintf("unknown country %q", country))
 	}
 	if c, ok := r["coords"].(map[string]any); ok {
 		lat, _ := c["lat"].(float64)
 		lng, _ := c["lng"].(float64)
-		h.Coords = &Coords{lat, lng}
-		if centre, ok := cityCentres[strings.ToLower(h.City)]; ok {
-			if d := haversineKm(*h.Coords, centre); d > 50 {
-				h.Notes = append(h.Notes, fmt.Sprintf("coords are %.0f km from %s centre", d, h.City))
+		h.Location.Coordinates = &Coords{lat, lng}
+		if centre, ok := cityCentres[strings.ToLower(h.Location.City)]; ok {
+			if d := haversineKm(*h.Location.Coordinates, centre); d > 50 {
+				h.Notes = append(h.Notes, fmt.Sprintf("coords are %.0f km from %s centre", d, h.Location.City))
 			}
 		}
 	}

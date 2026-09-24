@@ -74,4 +74,23 @@ Ran `gofmt -l .` (flagged formatting, fixed with `gofmt -w`), `go vet ./...` (cl
 
 ### Response
 
-(this response — writing `prompt-log.md`, then proceeding to commit and push within the remaining time before the one-hour deadline)
+Wrote this `prompt-log.md` covering prompts 1-4. Staged and committed all files (`.gitignore`, `DECISIONS.md`, `go.mod`, `hotels.json`, `main.go`, `prompt-log.md`). `gh repo create hotels --public --source=. --remote=origin --push` failed with "Name already exists on this account" — checked `gh api user` and found the authenticated account is `c12i`, not `collinsmuriuki`; `c12i/hotels` already existed as an empty public repo (created at the start of this task). Added `origin` (it had already been set by the failed `gh repo create` call) and pushed `main` — succeeded at 12:55:58 EAT, comfortably inside the one-hour deadline. Also noticed `go.mod`'s module path had assumed the wrong GitHub org (`collinsmuriuki` instead of `c12i`); fixed it, rebuilt to confirm nothing broke, and pushed a second small commit.
+
+Reported back: DECISIONS.md, main.go and prompt-log.md are all ready and pushed to `https://github.com/c12i/hotels`; flagged that (a) two earlier responses were cut short by a safety classifier and prompt-log.md notes this rather than reconstructing the missing text, (b) Prompt 3 ("Question: based on the given data") had no question attached, and (c) the user still needs to send the required "Reply All" email personally.
+
+## Prompt 5
+
+> I would like to imporove how locations are represented: rather than having multiple root fields, let's have a single location field, which would include: city, country_code, coordinates
+>
+> A decision to be made is how to derive addresses, which are important for locating hotels: preferrably I would like to use the PostalAddress specification. Addresses can be derived by a separate LLM service, so for now, define the schema, but show as null for the current data. Write the details on address extraction in DECISIONS.md
+
+### Response
+
+Restructured `main.go`'s `Hotel` type: replaced the root-level `city`, `country_code`, `coords` fields with a single nested `Location` struct (`city`, `country_code`, `coordinates`, `address`). Added a `PostalAddress` struct mirroring schema.org's `PostalAddress` shape (`street_address`, `address_locality`, `address_region`, `postal_code`, `address_country`) as `*PostalAddress`, left unset everywhere so it serialises as `location.address: null` for every record. Updated the location-parsing code in `normalise()` to write into `h.Location.*` instead of top-level fields; the Munich-coordinate distance check (City Lodge Berlin) still works unchanged, just reading from the nested struct.
+
+Ran `gofmt -w`, `go vet ./...` (clean), `go run .`, and a small Python check confirming all 5 records have a `location` object with `city`/`country_code`/`coordinates`/`address` keys, `address` is `null` on all 5, and the Berlin coordinate-mismatch note is still emitted.
+
+Updated `DECISIONS.md`:
+- The schema bullet list now describes `location` as one nested object instead of separate fields, linking to schema.org's `PostalAddress` and explaining why that shape was chosen (drop-in compatibility with existing address tooling/geocoders).
+- Added a new "Address extraction (future work, not in this prototype)" subsection: addresses would come from a separate LLM service run after this normaliser, given name + city + country + description (+ coordinates when present), returning a structured `PostalAddress` or abstaining rather than guessing. Explained why an LLM rather than a reverse-geocoder API: two of five sample records lack coordinates and one has coordinates that are wrong by ~504 km, and an LLM can also mine an address out of free text (e.g. Alpenhof's German description) which a reverse-geocoder can't do. Noted the two approaches are complementary in production (geocode when coordinates are trustworthy, LLM-extract from text otherwise, cross-check when both exist), that the service would fill the same `location.address` field this script already emits as `null` so the schema doesn't change when it ships, and that it should return a confidence/abstain signal rather than present a guessed address as fact.
+- Updated the "How we'll know it works" checklist item 4 to check the new nested `location` shape and `location.address == null`.
