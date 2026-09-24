@@ -35,10 +35,11 @@ type Location struct {
 	Address     *PostalAddress `json:"address"`
 }
 
+// Price is kept in whatever currency the source reports; converting
+// currencies is out of scope for this prototype.
 type Price struct {
 	Amount   float64 `json:"amount"`
 	Currency string  `json:"currency"`
-	EUR      float64 `json:"eur"`
 }
 
 // Review is provisioned for richer review data than any current source
@@ -66,9 +67,6 @@ type Hotel struct {
 	LastSeen    string   `json:"last_seen,omitempty"`
 	Notes       []string `json:"notes,omitempty"`
 }
-
-// Fixed rates for the prototype; a real pipeline would pull daily rates.
-var toEUR = map[string]float64{"EUR": 1, "USD": 0.92}
 
 var countryCodes = map[string]string{
 	"it": "IT", "italy": "IT", "italien": "IT", "italia": "IT",
@@ -154,18 +152,14 @@ func normalise(r map[string]any) Hotel {
 		}
 	}
 
-	// Price: price_from_eur number, or "180 USD" string.
+	// Price: price_from_eur number, or "180 USD" string. Kept in its
+	// original currency; no conversion (out of scope).
 	if v, ok := r["price_from_eur"].(float64); ok {
-		h.PriceFrom = &Price{v, "EUR", v}
+		h.PriceFrom = &Price{v, "EUR"}
 	} else if s := str(r, "price_from"); s != "" {
 		if m := priceRe.FindStringSubmatch(s); m != nil {
 			amt, _ := strconv.ParseFloat(m[1], 64)
-			cur := strings.ToUpper(m[2])
-			if rate, ok := toEUR[cur]; ok {
-				h.PriceFrom = &Price{amt, cur, math.Round(amt*rate*100) / 100}
-			} else {
-				h.Notes = append(h.Notes, fmt.Sprintf("no EUR rate for %s", cur))
-			}
+			h.PriceFrom = &Price{amt, strings.ToUpper(m[2])}
 		} else {
 			h.Notes = append(h.Notes, fmt.Sprintf("unparsed price %q", s))
 		}

@@ -116,4 +116,16 @@ Updated `DECISIONS.md`:
 
 ### Response
 
-Documentation-only change (no code touched). Added a "Star rating: sourced value vs. computed from reviews (future work)" subsection to `DECISIONS.md`, alongside the address- and review-extraction subsections. Grounded it in the concrete conflict already in the sample: `Hotel Mare Azzurro` (partner-feed-a) reports 4 stars, `Mare Azzuro Hotel` (scrape-booking-sites) reports 3 stars, for the same hotel. Laid out the two options — (1) the sourced/official static rating, what the script does today, vs (2) a rating computed by aggregating `review.rating` across extracted reviews once the review-extraction service (Prompt 6) is populating that field — and noted they measure different things (official class vs. guest satisfaction, which drifts over time), so the plan is to keep both as separate fields (`stars` stays sourced, a new `guest_rating` would be computed) rather than one replacing the other, and to surface disagreement between them — or between sources on the sourced value itself — as a flag rather than silently picking a winner. No schema or code change in this prototype; `stars` stays sourced-only since it depends on the not-yet-built review-extraction service.
+Documentation-only change (no code touched, this response). Added a "Star rating: sourced value vs. computed from reviews (future work)" subsection to `DECISIONS.md`, alongside the address- and review-extraction subsections. Grounded it in the concrete conflict already in the sample: `Hotel Mare Azzurro` (partner-feed-a) reports 4 stars, `Mare Azzuro Hotel` (scrape-booking-sites) reports 3 stars, for the same hotel. Laid out the two options — (1) the sourced/official static rating, what the script does today, vs (2) a rating computed by aggregating `review.rating` across extracted reviews once the review-extraction service (Prompt 6) is populating that field — and noted they measure different things (official class vs. guest satisfaction, which drifts over time), so the plan is to keep both as separate fields (`stars` stays sourced, a new `guest_rating` would be computed) rather than one replacing the other, and to surface disagreement between them — or between sources on the sourced value itself — as a flag rather than silently picking a winner. No schema or code change in this prototype; `stars` stays sourced-only since it depends on the not-yet-built review-extraction service.
+
+## Prompt 8
+
+> omit currency conversion, this is out of scope, let's only work with the raw data as provided
+
+### Response
+
+Removed EUR currency conversion from `main.go`: dropped the `EUR` field from the `Price` struct (now just `amount` + `currency`), removed the `toEUR` fixed-rate lookup table, and simplified the price-parsing branch so `price_from_eur` and `"180 USD"`-style strings are recorded as-is in their original currency with no conversion or rate lookup (and no more "no EUR rate for X" note, since there's no conversion to fail).
+
+Ran `gofmt -w`, `go vet ./...`, `go build ./...` (all clean), and `go run .` — confirmed `price_from` now prints `{"amount": 89, "currency": "EUR"}` and `{"amount": 180, "currency": "USD"}` with no `eur` field.
+
+Updated `DECISIONS.md`: the `Price` schema bullet now says amounts are kept as reported with conversion explicitly out of scope, and success-criteria item 3 was reworded to check the raw currency values instead of an EUR equivalent. Grepped the file to confirm no other EUR/conversion references were left stale.

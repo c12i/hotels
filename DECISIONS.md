@@ -7,7 +7,7 @@ A Go script that maps every source record (partner-feed-a, partner-feed-b, scrap
 - **Name**: taken from `hotel_name` or `name`.
 - **Location**: a single nested object (`city`, `country_code`, `coordinates`, `address`) rather than separate root-level fields. `country_code` is ISO, parsed from `location` strings like "Rimini, Italien". `coordinates` are optional, and the script checks whether they fall near the stated city. `address` follows the [schema.org `PostalAddress`](https://schema.org/PostalAddress) shape (`street_address`, `address_locality`, `address_region`, `postal_code`, `address_country`) so it's a drop-in with existing address tooling and geocoders. None of the current sources give us a street address, so this script always leaves it `null` — see "Address extraction" below.
 - **Stars**: an integer or null, whether the source says `4`, `"3 stars"` or nothing.
-- **Price**: an amount plus currency, with an EUR value added (`89` → 89 EUR, `"180 USD"` → converted using a fixed rate).
+- **Price**: an amount plus currency, kept as reported (`89 EUR`, `180 USD`). Currency conversion is out of scope for this prototype — we only work with the raw data as provided.
 - **Description**: plain text, with HTML tags stripped and whitespace collapsed.
 - **Amenities**: a list of canonical names (`free WiFi` → `wifi`, `swimming pool` → `pool`), whether the source sends a CSV string, an array or null.
 - **Reviews**: a list of objects (`text`, `author`, `rating`, `written_at`, `guest_count`, `room_type`) instead of bare strings. Only `text` comes from the current sample; the rest are `null` — see "Review extraction" below.
@@ -53,7 +53,7 @@ These aren't really substitutes for each other — one is an official classifica
 Running `go run .` on `hotels.json`:
 1. All 5 records come out in the same shape, with no fields lost silently. Unparseable values show up as null plus a note.
 2. Stars are `4`, `3`, `null`, `null`, `null`.
-3. Prices are 89 EUR and 180 USD (with an EUR equivalent). Missing prices are null.
+3. Prices are 89 EUR and 180 USD, each kept in its original currency (no conversion). Missing prices are null.
 4. Each record has one `location` object with a city and a 2-letter country code; `location.address` is `null` for all 5. City Lodge Berlin gets a note that its coordinates don't match Berlin.
 5. No description contains `<` or `>` tags.
 6. The one record with review data (Mare Azzuro Hotel) has two `reviews` objects with `text` set and `author`/`rating`/`written_at`/`guest_count`/`room_type` all `null`.
