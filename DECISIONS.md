@@ -12,8 +12,7 @@ A Go script that maps every source record (partner-feed-a, partner-feed-b, scrap
 - **Amenities**: a list of canonical names (`free WiFi` → `wifi`, `swimming pool` → `pool`), whether the source sends a CSV string, an array or null.
 - **Reviews**: a list of objects (`text`, `author`, `rating`, `written_at`, `guest_count`, `room_type`) instead of bare strings. Only `text` comes from the current sample; the rest are `null` — see "Review extraction" below.
 
-**Audience:** an AI travel agent that queries hotel data, plus whoever maintains the feed ingestion.
-**Value:** the agent can filter and compare hotels on one set of fields ("4-star in Italy under €100 with a pool") without handling each source's quirks.
+This is built for an AI travel agent that queries hotel data, and for whoever maintains the feed ingestion behind it. With one schema, the agent can filter and compare hotels on the same fields (say, "4-star hotels in Italy under €100 with a pool") instead of working around each source's quirks.
 
 ### Address extraction (future work, not in this prototype)
 
@@ -44,9 +43,9 @@ These aren't really substitutes for each other — one is an official classifica
 
 ## Alternatives considered
 
-- **Duplicate detection / merging** (the two Rimini records). High value, but fuzzy matching is only reliable once records share a schema. It's a natural next step.
-- **Translating and extracting facts from descriptions** (Alpenhof's German text). Needs an LLM or translation dependency, which is too much for one hour.
-- **Freshness scoring by `last_seen`.** Only one record has a timestamp, so the sample can't demonstrate it.
+- Duplicate detection and merging (the two Rimini records). High value, but fuzzy matching only works once records share a schema, so it's a next step rather than a first one.
+- Translating and extracting facts from descriptions (Alpenhof's German text). That needs an LLM or a translation dependency, more than an hour allows.
+- Freshness scoring by `last_seen`. Only one record even has a timestamp, so the sample can't really demonstrate it.
 
 ## How we'll know it works
 
